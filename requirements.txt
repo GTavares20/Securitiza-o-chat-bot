@@ -1,0 +1,5 @@
+numpy
+requests
+pypdf
+python-dotenv
+FlagEmbedding
