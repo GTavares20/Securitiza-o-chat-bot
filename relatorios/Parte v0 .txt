@@ -1,0 +1,319 @@
+V0 — Relatório de Desenvolvimento
+
+============================================================
+CHATBOT LLM PARA SECURITIZADORA
+VERSÃO V0 — PRIMEIRO PROTÓTIPO
+============================================================
+
+STATUS: CONCLUÍDO
+
+------------------------------------------------------------
+1. OBJETIVO DA V0
+------------------------------------------------------------
+
+A V0 teve como objetivo construir o primeiro protótipo funcional
+do chatbot utilizando um Large Language Model (LLM), estabelecendo
+a comunicação entre a aplicação Python e um modelo de linguagem
+executado localmente.
+
+Nesta etapa, o foco não foi construir o sistema completo de
+securitização, mas criar uma base funcional sobre a qual as
+próximas versões poderiam ser desenvolvidas.
+
+O objetivo principal foi validar:
+
+- Comunicação entre Python e um LLM;
+- Consumo de uma API;
+- Envio de perguntas;
+- Recebimento e tratamento das respostas;
+- Manutenção de histórico de conversa;
+- Configuração do modelo;
+- Estruturação inicial do projeto;
+- Tratamento básico de erros;
+- Comportamento do chatbot em perguntas sem informação suficiente.
+
+
+------------------------------------------------------------
+2. TECNOLOGIAS UTILIZADAS
+------------------------------------------------------------
+
+Linguagem:
+- Python 3.11.9
+
+Ambiente:
+- Visual Studio Code
+- Ambiente virtual (.venv)
+
+Bibliotecas principais:
+- requests
+- python-dotenv
+
+LLM:
+- Ollama
+- Qwen3 4B
+
+API:
+- Ollama API local
+
+
+------------------------------------------------------------
+3. CONFIGURAÇÃO DO AMBIENTE
+------------------------------------------------------------
+
+Foi criado um ambiente virtual próprio para o projeto.
+
+Estrutura inicial:
+
+Chat_bot/
+│
+├── .venv/
+├── .env
+├── app/
+│   ├── config.py
+│   ├── llm.py
+│   ├── chatbot.py
+│   └── Main.py
+│
+└── notebook/
+    └── Estudo.ipynb
+
+
+O arquivo .env foi utilizado para manter configurações
+separadas do código principal.
+
+Exemplo de configuração:
+
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen3:4b
+OLLAMA_TEMPERATURE=0.2
+
+
+------------------------------------------------------------
+4. PRIMEIRO TESTE — API DO OLLAMA
+------------------------------------------------------------
+
+O primeiro processo foi testar diretamente a API do Ollama.
+
+A aplicação Python realizou uma requisição HTTP para o endpoint
+local do Ollama.
+
+O fluxo inicial foi:
+
+Python
+  ↓
+HTTP Request
+  ↓
+Ollama API
+  ↓
+Qwen3 4B
+  ↓
+JSON
+  ↓
+Python
+
+
+Inicialmente, a resposta completa da API era retornada.
+
+Posteriormente, o código foi ajustado para extrair somente o
+conteúdo relevante da resposta.
+
+No endpoint de geração, foi utilizado o campo:
+
+response["response"]
+
+
+------------------------------------------------------------
+5. TRANSFORMAÇÃO EM FUNÇÃO REUTILIZÁVEL
+------------------------------------------------------------
+
+Depois da validação da comunicação com a API, a chamada ao modelo
+foi transformada em uma função reutilizável.
+
+Foi criada a função:
+
+perguntar_llm(pergunta)
+
+A função passou a concentrar a comunicação com o modelo,
+permitindo que outras partes da aplicação utilizassem o LLM
+sem repetir o código da requisição HTTP.
+
+
+------------------------------------------------------------
+6. SYSTEM PROMPT
+------------------------------------------------------------
+
+Foi criado um System Prompt específico para direcionar o
+comportamento do chatbot.
+
+As principais regras definidas foram:
+
+- Responder em português do Brasil;
+- Não inventar informações;
+- Não apresentar como fato informações sem segurança;
+- Informar quando não houver informação suficiente;
+- Diferenciar informações gerais sobre securitização de
+  informações específicas de uma operação.
+
+O objetivo foi reduzir respostas inadequadas e preparar o
+chatbot para o contexto profissional de securitização.
+
+
+------------------------------------------------------------
+7. CONTROLE DE TEMPERATURA
+------------------------------------------------------------
+
+Foi adicionada a configuração de temperatura.
+
+A temperatura foi definida no arquivo .env:
+
+OLLAMA_TEMPERATURE=0.2
+
+Essa configuração foi posteriormente utilizada na requisição
+enviada ao modelo.
+
+O objetivo foi tornar as respostas mais controladas e menos
+variáveis, algo importante para um chatbot que posteriormente
+trabalhará com documentos financeiros.
+
+
+------------------------------------------------------------
+8. TRATAMENTO DE ERROS
+------------------------------------------------------------
+
+Foram adicionados tratamentos básicos para problemas de
+comunicação com o modelo.
+
+Foram considerados principalmente:
+
+- Timeout;
+- Erro de conexão;
+- Erros HTTP;
+- Problemas relacionados à comunicação com a API.
+
+Também foi utilizado timeout na requisição para evitar que a
+aplicação permanecesse indefinidamente aguardando uma resposta.
+
+
+------------------------------------------------------------
+9. HISTÓRICO DE CONVERSA
+------------------------------------------------------------
+
+A aplicação foi posteriormente migrada do endpoint de geração
+simples para o endpoint de chat.
+
+Isso permitiu trabalhar com mensagens no formato:
+
+- system
+- user
+- assistant
+
+Foi criado um histórico contendo as mensagens anteriores.
+
+Fluxo:
+
+Pergunta do usuário
+        ↓
+Histórico
+        ↓
+LLM
+        ↓
+Resposta
+        ↓
+Histórico atualizado
+
+
+Dessa forma, o chatbot passou a conseguir considerar o contexto
+das perguntas anteriores.
+
+
+------------------------------------------------------------
+10. CLASSE CHATBOT
+------------------------------------------------------------
+
+Para organizar melhor a aplicação, foi criada a classe:
+
+Chatbot
+
+A classe passou a ser responsável pelo estado da conversa.
+
+Principais componentes:
+
+- modelo utilizado;
+- histórico da conversa;
+- envio da pergunta ao LLM;
+- armazenamento das respostas.
+
+
+O fluxo passou a ser:
+
+Main.py
+   ↓
+Chatbot
+   ↓
+perguntar_llm()
+   ↓
+Ollama
+   ↓
+LLM
+   ↓
+Resposta
+
+
+------------------------------------------------------------
+11. COMANDO /LIMPAR
+------------------------------------------------------------
+
+Foi implementado o comando:
+
+/limpar
+
+Esse comando permite apagar o histórico e iniciar uma nova
+conversa.
+
+Também foi implementado:
+
+sair
+
+para encerrar a aplicação.
+
+
+------------------------------------------------------------
+12. RESULTADO DA V0
+------------------------------------------------------------
+
+Ao final da V0, foi possível executar um chatbot funcional
+localmente utilizando Python, Ollama e um LLM.
+
+O sistema passou a possuir:
+
+- Comunicação funcional com LLM;
+- API local;
+- System Prompt;
+- Temperatura configurável;
+- Histórico de conversa;
+- Classe Chatbot;
+- Tratamento básico de erros;
+- Comandos de controle da conversa;
+- Estrutura modular inicial.
+
+
+------------------------------------------------------------
+13. LIMITAÇÕES DA V0
+------------------------------------------------------------
+
+A V0 ainda não possuía conhecimento específico dos documentos
+de uma operação de securitização.
+
+O modelo respondia utilizando seu conhecimento próprio.
+
+Consequentemente, perguntas específicas sobre uma operação
+poderiam gerar respostas plausíveis, mas sem garantia de que
+estivessem fundamentadas em documentos reais.
+
+Essa limitação foi importante para justificar a evolução para
+RAG na V2.
+
+
+============================================================
+FIM — V0
+============================================================

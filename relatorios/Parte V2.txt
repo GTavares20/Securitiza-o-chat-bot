@@ -1,0 +1,438 @@
+RELATÓRIO — V2: RAG PARA DOCUMENTOS DE SECURITIZAÇÃO
+
+1. OBJETIVO DA V2
+
+A V2 teve como objetivo transformar o chatbot desenvolvido na V1 em um sistema capaz de consultar documentos reais da operação de securitização e gerar respostas fundamentadas nesses documentos.
+
+A principal limitação da V1 era que o LLM respondia diretamente às perguntas, sem acesso ao conteúdo dos documentos. A solução implementada foi uma arquitetura Retrieval-Augmented Generation (RAG).
+
+
+2. ARQUITETURA IMPLEMENTADA
+
+Documento PDF
+↓
+Extração de texto
+↓
+Limpeza
+↓
+Chunking
+↓
+Embeddings
+↓
+Hybrid Retrieval
+(Busca semântica + busca lexical)
+↓
+BGE Reranker
+↓
+Top 5 chunks
+↓
+Context Builder
+↓
+Prompt
+↓
+Qwen 3 4B
+↓
+Resposta + fontes
+
+
+3. DOCUMENTO UTILIZADO
+
+Documento:
+CRI-Be-Brave-Termo-de-Securitizacao-v.assinada.pdf
+
+O documento possui 146 páginas.
+
+A extração foi realizada utilizando a biblioteca pypdf.
+
+
+4. EXTRAÇÃO E LIMPEZA
+
+Foi criado o módulo app/document_loader.py, responsável pela leitura do PDF e extração do texto página a página.
+
+Foi criado o módulo app/text_cleaner.py para limpeza do conteúdo extraído.
+
+Um dos principais problemas identificados foi a presença de textos repetitivos relacionados à assinatura digital do documento. Esse conteúdo foi removido antes do chunking.
+
+
+5. CHUNKING
+
+Foi desenvolvido o app/chunker.py.
+
+Configuração:
+- Tamanho do chunk: 1000
+- Sobreposição: 200
+
+Resultado:
+146 páginas → 512 chunks
+
+Cada chunk recebeu metadados:
+- chunk_id
+- documento
+- página
+- texto
+
+A manutenção desses metadados permite a rastreabilidade das respostas.
+
+
+6. GERAÇÃO DE EMBEDDINGS
+
+Foi desenvolvido o app/embedding.py.
+
+Modelo:
+nomic-embed-text
+
+Execução:
+Ollama
+
+Foram gerados embeddings para os 512 chunks.
+
+Dimensão:
+768
+
+Armazenamento:
+data/chunks_embeddings.json
+
+
+7. RETRIEVAL SEMÂNTICO
+
+Inicialmente foi implementada uma busca baseada exclusivamente na similaridade semântica, utilizando similaridade de cosseno entre o embedding da pergunta e o embedding de cada chunk.
+
+A implementação foi realizada em app/retriever.py.
+
+Na pergunta "Qual é o prazo de vencimento dos CRI?", o chunk correto era o Chunk 82, Página 27.
+
+Na busca semântica completa com os 512 chunks, ele apareceu apenas na posição 131.
+
+Isso demonstrou que uma busca semântica isolada não era suficiente para garantir uma recuperação robusta.
+
+
+8. BUSCA LEXICAL
+
+Como complemento à busca semântica, foi implementada uma busca lexical baseada na ocorrência dos termos da pergunta nos chunks.
+
+Normalização utilizada:
+- lowercase
+- remoção de acentos
+- remoção de caracteres especiais
+- normalização dos espaços
+
+A busca lexical permitiu recuperar documentos nos quais os termos relevantes apareciam explicitamente.
+
+
+9. HYBRID RETRIEVAL
+
+A solução adotada foi combinar:
+
+Busca semântica + Busca lexical
+
+Configuração:
+- Top 20 semânticos
+- Top 20 lexicais
+
+Os resultados foram unidos para formar o conjunto de candidatos.
+
+No teste do prazo dos CRI, foram obtidos aproximadamente 37 candidatos.
+
+O Chunk 82 passou a fazer parte do conjunto de candidatos.
+
+
+10. RERANKING
+
+Após o Hybrid Retrieval, foi adicionada uma segunda etapa de ordenação utilizando:
+
+BAAI/bge-reranker-v2-m3
+
+através da biblioteca FlagEmbedding.
+
+O reranker recebe:
+- Pergunta
+- Texto do chunk
+
+e calcula uma pontuação de relevância.
+
+No teste:
+
+Pergunta:
+"Qual é o prazo de vencimento dos CRI?"
+
+Resultado:
+- Rank: 1
+- Chunk: 82
+- Página: 27
+- Score: 0.9951
+
+Isso mostrou uma melhoria significativa em relação à busca semântica isolada.
+
+
+11. CONTEXT BUILDER
+
+Foi criado o app/context_builder.py.
+
+Sua função é transformar os chunks selecionados pelo reranker em um contexto estruturado para o LLM.
+
+O contexto contém:
+- Trecho
+- Documento
+- Página
+- Chunk
+- Texto
+
+Exemplo:
+
+--- TRECHO 1 ---
+Documento: CRI-Be-Brave-Termo-de-Securitizacao-v.assinada.pdf
+Página: 27
+Chunk: 82
+
+[texto do chunk]
+
+Isso permite que o LLM receba o conteúdo relevante juntamente com seus metadados de origem.
+
+
+12. PROMPT DE GROUNDING
+
+O RAG utiliza um prompt específico para restringir o comportamento do LLM:
+
+"Responda à pergunta utilizando EXCLUSIVAMENTE as informações presentes no contexto fornecido."
+
+Regras implementadas:
+- não inventar informações;
+- não utilizar informações externas ao contexto;
+- informar quando não houver informação suficiente;
+- ser objetivo;
+- informar a página quando possível;
+- diferenciar informações específicas da operação de informações gerais.
+
+O objetivo é reduzir alucinações e manter as respostas grounded nos documentos recuperados.
+
+
+13. INTEGRAÇÃO COM O LLM
+
+O RAG utiliza o Qwen3:4b, executado localmente através do Ollama.
+
+Pipeline completo:
+
+Pergunta
+↓
+Hybrid Retrieval
+↓
+BGE Reranker
+↓
+Top 5
+↓
+Context Builder
+↓
+Prompt de grounding
+↓
+Qwen3:4b
+↓
+Resposta
+
+
+14. TESTES FUNCIONAIS
+
+Foram testadas perguntas sobre diferentes informações presentes no documento.
+
+Prazo de vencimento:
+- Chunk 82
+- Página 27
+- Rank 1
+
+Devedora:
+- Chunk 26
+- Página 9
+- Rank 1
+- MERAKI RESIDENCE SPE LTDA.
+
+Remuneração:
+- 1ª Série: 100% DI + 5,20% a.a.
+- 2ª Série: 100% DI + 5,30% a.a.
+
+Valor total da emissão:
+- Chunk 80
+- Página 26
+- Rank 1
+- R$ 40.000.000,00
+
+Também foram testadas perguntas sobre informações inexistentes:
+- Lucro líquido em 2025
+- EBITDA em 2025
+- Receita líquida em 2025
+
+
+15. AVALIAÇÃO QUANTITATIVA DO RETRIEVAL
+
+Foi criado:
+data/rag_tests.json
+
+O conjunto contém 15 testes:
+- 12 com resposta existente
+- 3 com resposta inexistente
+
+Também foi criado:
+app/evaluate_rag.py
+
+Resultados para os 12 testes com resposta existente:
+
+Recall@1: 91,67%
+Recall@3: 100,00%
+Recall@5: 100,00%
+MRR: 0,9583
+
+Interpretação:
+
+Recall@1 = 91,67%
+Em 11 dos 12 casos, o chunk relevante apareceu diretamente em primeiro lugar.
+
+Recall@3 = 100%
+Em todos os casos, o chunk relevante apareceu entre os três primeiros.
+
+Recall@5 = 100%
+Em todos os casos, o chunk relevante apareceu entre os cinco primeiros.
+
+MRR = 0,9583
+O primeiro resultado relevante ficou, em média, muito próximo do topo do ranking.
+
+O único caso que não ficou em Rank 1 foi o teste de atualização monetária:
+
+Top 5:
+[113, 82, 112, 275, 123]
+
+Chunk esperado:
+82
+
+Rank:
+2
+
+Ainda assim, o chunk relevante permaneceu no Top 3 e Top 5.
+
+
+16. RESULTADO TÉCNICO DA V2
+
+A V2 implementou um pipeline RAG funcional para documentos de securitização:
+
+PDF
+↓
+Extração
+↓
+Limpeza
+↓
+Chunking
+↓
+Embedding
+↓
+Hybrid Retrieval
+↓
+BGE Reranker
+↓
+Context Builder
+↓
+LLM
+
+A avaliação inicial apresentou:
+
+Recall@5 = 100%
+MRR = 0,9583
+
+em 12 testes com respostas existentes.
+
+Esses resultados representam o desempenho no conjunto de avaliação desenvolvido até o momento e não uma garantia de desempenho geral do sistema.
+
+
+17. INTEGRAÇÃO COM O CHATBOT
+
+Ao final da V2, o RAG foi integrado ao chatbot desenvolvido na V1.
+
+Fluxo:
+
+Usuário
+↓
+Main
+↓
+Router
+↓
+Geral ou Documental
+
+Pergunta geral:
+Router → LLM
+
+Pergunta documental:
+Router → RAG → Resposta + fontes
+
+Assim, perguntas gerais continuam utilizando o LLM diretamente, enquanto perguntas documentais são direcionadas ao pipeline RAG.
+
+O Chatbot passou a retornar:
+
+{
+    "resposta": resposta,
+    "fontes": fontes
+}
+
+permitindo apresentar a origem das informações ao usuário.
+
+
+18. ESTRUTURA FINAL RELACIONADA AO V2
+
+app/
+├── document_loader.py
+├── text_cleaner.py
+├── chunker.py
+├── embedding.py
+├── retriever.py
+├── reranker.py
+├── context_builder.py
+├── rag.py
+├── chatbot.py
+├── router.py
+└── evaluate_rag.py
+
+data/
+├── chunks_embeddings.json
+└── rag_tests.json
+
+
+19. STATUS DA V2
+
+IMPLEMENTADO
+
+[X] Leitura do PDF
+[X] Extração página a página
+[X] Limpeza do texto
+[X] Chunking
+[X] Metadados dos chunks
+[X] Embeddings
+[X] Busca semântica
+[X] Busca lexical
+[X] Hybrid Retrieval
+[X] BGE Reranker
+[X] Context Builder
+[X] Prompt de grounding
+[X] Integração com Qwen3
+[X] Retorno das fontes
+[X] Avaliação automatizada do retrieval
+[X] Integração RAG + Chatbot + Router
+
+
+AINDA NÃO CONCLUÍDO
+
+[ ] Avaliação sistemática de respostas inexistentes
+[ ] Avaliação end-to-end mais ampla
+[ ] Guardrails
+[ ] Interface
+[ ] Persistência/vector database mais robusto
+[ ] MLOps/deployment
+
+
+20. CONCLUSÃO DA V2
+
+A V2 representa a passagem de um chatbot baseado exclusivamente em LLM para um chatbot capaz de consultar e fundamentar respostas em documentos reais de uma operação de securitização.
+
+O principal avanço técnico foi a construção de um pipeline de recuperação em múltiplas etapas:
+
+Hybrid Retrieval + BGE Reranker + Context Builder + LLM
+
+com preservação das fontes documentais.
+
+O resultado de Recall@5 = 100% no conjunto de testes atual indica que o sistema está conseguindo colocar o conteúdo relevante entre os candidatos utilizados pelo LLM, criando uma base sólida para as próximas etapas do projeto.
+
+STATUS: V2 CONCLUÍDA FUNCIONALMENTE.

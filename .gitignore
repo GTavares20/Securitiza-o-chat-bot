@@ -1,0 +1,37 @@
+# Environment
+.env
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local documents
+documents/*
+!documents/.gitkeep
+
+# Generated data
+data/processed/*
+!data/processed/.gitkeep
+
+# Generated embeddings
+data/evaluation/chunks_embeddings.json
+
+# Local reports
+reports/*
+!reports/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+

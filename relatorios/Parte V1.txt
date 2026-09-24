@@ -1,0 +1,388 @@
+V1 — Relatório de Desenvolvimento
+
+============================================================
+CHATBOT LLM PARA SECURITIZADORA
+VERSÃO V1 — MULTI-MODELOS E MODEL ROUTER
+============================================================
+
+STATUS: CONCLUÍDO
+
+------------------------------------------------------------
+1. OBJETIVO DA V1
+------------------------------------------------------------
+
+A V1 teve como objetivo evoluir o chatbot desenvolvido na V0
+para uma arquitetura capaz de trabalhar com múltiplos modelos
+de linguagem.
+
+O foco principal foi implementar um Model Router capaz de
+analisar a pergunta do usuário e determinar qual modelo deveria
+ser utilizado para produzir a resposta.
+
+A V1 buscou validar o conceito de:
+
+Pergunta
+   ↓
+Classificação
+   ↓
+Seleção do modelo
+   ↓
+Resposta
+
+
+------------------------------------------------------------
+2. EVOLUÇÃO DA V0 PARA A V1
+------------------------------------------------------------
+
+Na V0 havia apenas um modelo principal.
+
+V0:
+
+Usuário
+  ↓
+Chatbot
+  ↓
+Qwen3 4B
+  ↓
+Resposta
+
+
+Na V1 foram adicionados múltiplos modelos:
+
+Usuário
+  ↓
+Router
+  ↓
+Classificação
+  ↓
+Modelo selecionado
+  ↓
+Resposta
+
+
+Foram utilizados:
+
+- Qwen3 4B
+- Llama 3.2 3B
+
+
+------------------------------------------------------------
+3. NOVO MODELO
+------------------------------------------------------------
+
+Foi realizado o download e teste do:
+
+Llama 3.2 3B
+
+O modelo foi integrado à mesma infraestrutura utilizada
+anteriormente com o Qwen3 4B.
+
+A aplicação passou a receber o modelo como parâmetro, em vez de
+utilizar obrigatoriamente um único modelo.
+
+
+------------------------------------------------------------
+4. ALTERAÇÃO DA FUNÇÃO DO LLM
+------------------------------------------------------------
+
+A função de comunicação com o LLM foi modificada para aceitar
+o modelo como argumento.
+
+Conceitualmente:
+
+perguntar_llm(
+    pergunta,
+    historico,
+    modelo
+)
+
+Isso permitiu que o mesmo código fosse utilizado para diferentes
+modelos.
+
+
+------------------------------------------------------------
+5. CHATBOT MULTI-MODELO
+------------------------------------------------------------
+
+A classe Chatbot também foi modificada.
+
+O chatbot passou a armazenar:
+
+- modelo atual;
+- histórico da conversa.
+
+Além disso, foi criado o método:
+
+trocar_modelo(modelo)
+
+Esse método permite alterar o modelo utilizado sem criar uma
+nova conversa.
+
+
+------------------------------------------------------------
+6. PROBLEMA IDENTIFICADO DURANTE O DESENVOLVIMENTO
+------------------------------------------------------------
+
+Durante a implementação inicial do Router foi identificado um
+problema importante.
+
+Quando o modelo mudava, um novo objeto Chatbot era criado.
+
+Isso fazia com que o histórico da conversa fosse perdido.
+
+Problema:
+
+Modelo A
+  ↓
+Histórico
+  ↓
+Troca de modelo
+  ↓
+Novo Chatbot
+  ↓
+Histórico perdido
+
+
+A solução implementada foi permitir a troca do modelo dentro
+do mesmo objeto Chatbot.
+
+Solução:
+
+Chatbot
+├── modelo → pode mudar
+└── histórico → permanece
+
+
+Essa alteração tornou possível trocar de modelo durante uma
+mesma conversa sem perder o contexto.
+
+
+------------------------------------------------------------
+7. PRIMEIRA VERSÃO DO ROUTER
+------------------------------------------------------------
+
+A primeira implementação do Router utilizou palavras-chave.
+
+Alguns exemplos de termos associados a perguntas documentais:
+
+- contrato
+- cláusula
+- securitização
+- operação
+- cascata
+- pagamento
+- debênture
+- CRI
+- CRA
+- emissão
+- investidor
+- recebíveis
+- cessão
+- cedente
+- devedor
+- lastro
+
+
+Quando uma dessas palavras era identificada, a pergunta era
+classificada como documental.
+
+Caso contrário, era classificada como geral.
+
+
+------------------------------------------------------------
+8. EVOLUÇÃO DA CLASSIFICAÇÃO
+------------------------------------------------------------
+
+O Router foi posteriormente ampliado para trabalhar com três
+categorias:
+
+DOCUMENTAL
+GERAL
+AMBIGUA
+
+
+DOCUMENTAL:
+
+Perguntas relacionadas a operações, contratos, documentos,
+cláusulas, estruturas financeiras ou informações específicas.
+
+
+GERAL:
+
+Perguntas conceituais ou explicativas.
+
+
+AMBIGUA:
+
+Perguntas nas quais não era possível determinar claramente a
+intenção.
+
+
+Essa mudança tornou o comportamento do Router mais flexível.
+
+
+------------------------------------------------------------
+9. LLM COMO ROUTER
+------------------------------------------------------------
+
+Após validar a classificação baseada em regras, foi realizado
+um novo avanço.
+
+O próprio LLM passou a classificar a pergunta.
+
+Foi criada a função:
+
+classificar_com_llm(pergunta)
+
+
+O LLM recebe instruções para retornar somente uma das opções:
+
+documental
+geral
+ambigua
+
+
+O resultado da classificação é então utilizado pelo Python para
+selecionar o modelo.
+
+
+------------------------------------------------------------
+10. ARQUITETURA FINAL DA V1
+------------------------------------------------------------
+
+A arquitetura final validada foi:
+
+                    PERGUNTA
+                       │
+                       ▼
+                ┌──────────────┐
+                │ LLM ROUTER   │
+                └──────┬───────┘
+                       │
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+     documental       geral       ambigua
+          │            │            │
+          ▼            ▼            ▼
+       Qwen 3       Llama 3      Llama 3
+          │            │            │
+          └────────────┼────────────┘
+                       ▼
+                    RESPOSTA
+
+
+------------------------------------------------------------
+11. TESTES REALIZADOS
+------------------------------------------------------------
+
+Foram realizados testes práticos com perguntas de diferentes
+tipos.
+
+Pergunta:
+
+"O que é securitização?"
+
+Classificação:
+
+geral
+
+Modelo:
+
+Llama 3.2 3B
+
+
+Pergunta:
+
+"Qual é a cascata de pagamentos dessa operação?"
+
+Classificação:
+
+documental
+
+Modelo:
+
+Qwen3 4B
+
+
+Pergunta:
+
+"Explique o que é risco de crédito."
+
+Classificação:
+
+geral
+
+Modelo:
+
+Llama 3.2 3B
+
+
+Também foi testada uma pergunta ambígua:
+
+"Essa estrutura apresenta risco?"
+
+O comportamento demonstrou a existência da categoria ambigua.
+
+
+------------------------------------------------------------
+12. RESULTADOS DA V1
+------------------------------------------------------------
+
+Ao final da V1, o chatbot passou a possuir uma arquitetura
+multi-modelo funcional.
+
+Foi validado:
+
+- Utilização de dois LLMs;
+- Seleção automática de modelo;
+- Classificação de perguntas;
+- LLM atuando como Router;
+- Troca de modelo durante a conversa;
+- Preservação do histórico;
+- Classificação documental, geral e ambigua;
+- Integração entre Router, Chatbot e LLM;
+- Estrutura modular do projeto.
+
+
+------------------------------------------------------------
+13. LIMITAÇÕES DA V1
+------------------------------------------------------------
+
+Apesar da classificação documental, o sistema ainda não possui
+acesso aos documentos reais das operações.
+
+Portanto, uma pergunta como:
+
+"Qual é a cascata de pagamentos dessa operação?"
+
+ainda pode receber uma resposta baseada no conhecimento geral
+do modelo.
+
+O Router consegue identificar que a pergunta é documental, mas
+ainda não consegue buscar a informação dentro de um documento.
+
+
+------------------------------------------------------------
+14. CONCLUSÃO DA V1
+------------------------------------------------------------
+
+A V1 consolidou a arquitetura multi-modelo do projeto.
+
+O chatbot deixou de depender de um único modelo e passou a
+possuir uma camada de decisão responsável por determinar qual
+modelo deveria responder à pergunta.
+
+A principal evolução da V1 foi a introdução do conceito de
+Model Router.
+
+Entretanto, a limitação identificada na V0 continua parcialmente
+presente: o chatbot ainda não possui grounding em documentos
+reais.
+
+Por esse motivo, a próxima evolução natural do projeto será a
+implementação de RAG.
+
+
+============================================================
+FIM — V1
+============================================================

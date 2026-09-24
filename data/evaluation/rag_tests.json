@@ -1,0 +1,107 @@
+[
+    {
+        "id": 1,
+        "pergunta": "Qual é o prazo de vencimento dos CRI?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [82],
+        "pagina_esperada": [27]
+    },
+    {
+        "id": 2,
+        "pergunta": "Quem é a devedora da operação?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [26],
+        "pagina_esperada": [9]
+    },
+    {
+        "id": 3,
+        "pergunta": "Qual foi o lucro líquido da Meraki Residence SPE em 2025?",
+        "tipo": "resposta_inexistente",
+        "chunks_esperados": [],
+        "pagina_esperada": []
+    },
+    {
+        "id": 4,
+        "pergunta": "Qual é a remuneração dos CRI da 1ª e da 2ª Série?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [81, 82, 113],
+        "pagina_esperada": [26, 27, 34]
+    },
+    {
+        "id": 5,
+        "pergunta": "Qual é o valor total da emissão dos CRI?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [80],
+        "pagina_esperada": [26]
+    },
+    {
+        "id": 6,
+        "pergunta": "Qual é o Valor Nominal Unitário de cada CRI?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [56, 82],
+        "pagina_esperada": [20, 27]
+    },
+    {
+        "id": 7,
+        "pergunta": "Quantos CRI serão emitidos na operação?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [79],
+        "pagina_esperada": [26]
+    },
+    {
+        "id": 8,
+        "pergunta": "Quantas séries de CRI serão emitidas?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [79],
+        "pagina_esperada": [26]
+    },
+    {
+        "id": 9,
+        "pergunta": "Qual é o valor da emissão destinado à 1ª Série e à 2ª Série?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [80],
+        "pagina_esperada": [26]
+    },
+    {
+        "id": 10,
+        "pergunta": "Os CRI possuem atualização monetária?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [82],
+        "pagina_esperada": [27]
+    },
+    {
+        "id": 11,
+        "pergunta": "Qual é o valor inicial do Fundo de Despesas?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [56],
+        "pagina_esperada": [20]
+    },
+    {
+        "id": 12,
+        "pergunta": "Qual é o valor mínimo do Fundo de Despesas?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [56],
+        "pagina_esperada": [20]
+    },
+    {
+        "id": 13,
+        "pergunta": "Qual é a finalidade dos recursos líquidos captados com a integralização da Nota Comercial?",
+        "tipo": "resposta_existente",
+        "chunks_esperados": [63],
+        "pagina_esperada": [22]
+    },
+    {
+        "id": 14,
+        "pergunta": "Qual foi o EBITDA da Meraki Residence SPE em 2025?",
+        "tipo": "resposta_inexistente",
+        "chunks_esperados": [],
+        "pagina_esperada": []
+    },
+    {
+        "id": 15,
+        "pergunta": "Qual foi a receita líquida da Meraki Residence SPE em 2025?",
+        "tipo": "resposta_inexistente",
+        "chunks_esperados": [],
+        "pagina_esperada": []
+    }
+]
